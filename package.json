@@ -1,0 +1,33 @@
+{
+  "name": "transit-immutable-js",
+  "version": "0.0.0",
+  "description": "Transit serialisation for Immutable.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha",
+    "travis": "istanbul cover _mocha --"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glenjamin/transit-immutable-js.git"
+  },
+  "author": "Glen Mailer <glen@stainlessed.co.uk>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/glenjamin/transit-immutable-js/issues"
+  },
+  "homepage": "https://github.com/glenjamin/transit-immutable-js",
+  "peerDependencies": {
+    "immutable": ">= 3",
+    "transit-js": ">= 0.8"
+  },
+  "devDependencies": {
+    "chai": "^2.3.0",
+    "chai-immutable": "^1.2.0",
+    "coveralls": "^2.11.2",
+    "immutable": "^3.7.4",
+    "istanbul": "^0.3.14",
+    "mocha": "^2.2.5",
+    "transit-js": "^0.8.807"
+  }
+}
