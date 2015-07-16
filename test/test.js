@@ -6,45 +6,87 @@ var Immutable = require('immutable');
 
 var transit = require('../');
 
-describe('transit', function() {
-  Immutable.Map({
+var samples = Immutable.Map({
 
-    "Immutable Maps": Immutable.Map({"abc": "def"}),
+  "Immutable": Immutable.Map({
 
-    "Immutable Maps with numeric keys": Immutable.Map().set(1, 2),
+    "Maps": Immutable.Map({"abc": "def"}),
 
-    "Immutable Maps in Maps": Immutable.Map()
+    "Maps with numeric keys": Immutable.Map().set(1, 2),
+
+    "Maps in Maps": Immutable.Map()
       .set(1, Immutable.Map([['X', 'Y'], ['A', 'B']]))
       .set(2, Immutable.Map({a: 1, b: 2, c: 3})),
 
-    "Immutable Lists": Immutable.List.of(1, 2, 3, 4, 5),
+    "Lists": Immutable.List.of(1, 2, 3, 4, 5),
 
-    "Long Immutable Lists": Immutable.Range(0, 100).toList(),
+    "Long Lists": Immutable.Range(0, 100).toList(),
 
-    "Immutable Lists in Maps": Immutable.Map().set(
+    "Lists in Maps": Immutable.Map().set(
       Immutable.List.of(1, 2),
       Immutable.List.of(1, 2, 3, 4, 5)
     ),
 
-  }).forEach(function(data, desc) {
-    it('should round-trip ' + desc, function() {
-      var roundTrip = transit.fromJSON(transit.toJSON(data));
-      expect(roundTrip).to.be.an('object');
-      expect(roundTrip).to.equal(data);
-      expect(roundTrip).to.be.an.instanceOf(data.constructor);
+  }),
+
+  JS: Immutable.Map({
+
+    "array": [1, 2, 3, 4, 5],
+
+    "array of arrays": [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9, 10]
+    ],
+
+    "array of immutables": [
+      Immutable.Map({1: 2}),
+      Immutable.List.of(1, 2, 3)
+    ],
+
+    "object": {
+      a: 1,
+      b: 2
+    },
+
+    "object of immutables": {
+      a: Immutable.Map({1: 2}),
+      b: Immutable.Map({3: 4})
+    }
+
+  })
+
+});
+
+describe('transit', function() {
+  samples.get('Immutable').forEach(function(data, desc) {
+    describe(desc + " - " + data.inspect(), function() {
+      it('should encode to JSON', function() {
+        var json = transit.toJSON(data);
+        expect(json).to.be.a('string');
+        expect(JSON.parse(json)).to.not.eql(null);
+      });
+      it('should round-trip', function() {
+        var roundTrip = transit.fromJSON(transit.toJSON(data));
+        expect(roundTrip).to.be.an('object');
+        expect(roundTrip).to.equal(data);
+        expect(roundTrip).to.be.an.instanceOf(data.constructor);
+      });
     });
   });
 
-  it('should convert JS arrays to Lists', function() {
-    // well, ideally it shouldn't, but this doesn't seem very doable
-    var result = transit.fromJSON(transit.toJSON([1, 2, 3]));
-    expect(result).to.equal(Immutable.List.of(1, 2, 3));
-  });
-
-  it('should convert JS objects to Maps', function() {
-    // well, ideally it shouldn't, but this doesn't seem very doable
-    var result = transit.fromJSON(transit.toJSON({a: 1, b: "c"}));
-    expect(result).to.equal(Immutable.Map([["a", 1], ["b", "c"]]));
+  samples.get('JS').forEach(function(data, desc) {
+    describe(desc + " - " + JSON.stringify(data), function() {
+      it('should encode to JSON', function() {
+        var json = transit.toJSON(data);
+        expect(json).to.be.a('string');
+        expect(JSON.parse(json)).to.not.eql(null);
+      });
+      it('should round-trip', function() {
+        var roundTrip = transit.fromJSON(transit.toJSON(data));
+        expect(roundTrip).to.eql(data);
+      });
+    });
   });
 
   it('should ignore functions', function() {

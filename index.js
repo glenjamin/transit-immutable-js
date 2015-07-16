@@ -2,32 +2,22 @@ var transit = require('transit-js');
 var Immutable = require('immutable');
 
 var reader = transit.reader('json', {
-  arrayBuilder: {
-    init: function() {
-      return Immutable.List().asMutable();
-    },
-    add: function(l, v) {
-      return l.push(v);
-    },
-    finalize: function(l) {
-      return l.asImmutable();
-    },
-    fromArray: function(arr) {
-      return Immutable.List(arr);
-    }
-  },
   mapBuilder: {
     init: function() {
-      return Immutable.Map().asMutable();
+      return {};
     },
     add: function(m, k, v) {
-      return m.set(k, v);
+      m[k] = v;
+      return m;
     },
     finalize: function(m) {
-      return m.asImmutable();
+      return m;
     }
   },
   handlers: {
+    iList: function(v) {
+      return Immutable.List(v);
+    },
     cmap: function(v) {
       var m = Immutable.Map().asMutable();
       for (var i = 0; i < v.length; i += 2) {
@@ -42,18 +32,23 @@ var writer = transit.writer('json', {
   handlers: transit.map([
     Immutable.Map, transit.makeWriteHandler({
       tag: function() {
-        return 'map';
+        return 'cmap';
       },
-      rep: function(v) {
-        return v;
+      rep: function(m) {
+        var i = 0, a = new Array(m.size);
+        m.forEach(function(v, k) {
+          a[i++] = k;
+          a[i++] = v;
+        });
+        return a;
       }
     }),
     Immutable.List, transit.makeWriteHandler({
       tag: function() {
-        return "array";
+        return "iList";
       },
       rep: function(v) {
-        return v;
+        return v.toArray();
       }
     }),
     Function, transit.makeWriteHandler({
