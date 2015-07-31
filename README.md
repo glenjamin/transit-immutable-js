@@ -17,7 +17,7 @@ I have chosen to apply very broad npm peerDependencies for simplicity, please ch
 ## Usage
 
 ```js
-var transit = require('./');
+var transit = require('transit-immutable-js');
 var Immutable = require('immutable');
 
 var m = Immutable.Map({with: "Some", data: "In"});
@@ -25,12 +25,27 @@ var m = Immutable.Map({with: "Some", data: "In"});
 var str = transit.toJSON(m);
 
 console.log(str)
-// ["^ ","with","Some","data","In"]
+// ["~#cmap",["with","Some","data","In"]]
 
 var m2 = transit.fromJSON(str);
 
 console.log(Immutable.is(m, m2));
 // true
+```
+
+This library also manages to preserve objects which are a mixture of plain javascript and Immutable.
+
+```js
+var obj = {
+  iMap: Immutable.Map().set(Immutable.List.of(1, 2, 3), "123"),
+  iList: Immutable.List.of("a", "b", "c"),
+  array: [ "javascript", 4, "lyfe" ]
+}
+
+console.log(transit.fromJSON(transit.toJSON(obj)));
+// { iMap: Map { [1,2,3]: "123" },
+//  iList: List [ "a", "b", "c" ],
+//  array: [ 'javascript', 4, 'lyfe' ] }
 ```
 
 ## API
