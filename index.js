@@ -45,7 +45,7 @@ var writer = transit.writer('json', {
         return 'iM';
       },
       rep: function(m) {
-        var i = 0, a = new Array(m.size);
+        var i = 0, a = new Array(2 * m.size);
         m.forEach(function(v, k) {
           a[i++] = k;
           a[i++] = v;
@@ -58,7 +58,7 @@ var writer = transit.writer('json', {
         return 'iOM';
       },
       rep: function(m) {
-        var i = 0, a = new Array(m.size);
+        var i = 0, a = new Array(2 * m.size);
         m.forEach(function(v, k) {
           a[i++] = k;
           a[i++] = v;
