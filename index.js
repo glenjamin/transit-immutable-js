@@ -38,60 +38,7 @@ var reader = transit.reader('json', {
   }
 });
 
-var writer = transit.writer('json', {
-  handlers: transit.map([
-    Immutable.Map, transit.makeWriteHandler({
-      tag: function() {
-        return 'iM';
-      },
-      rep: function(m) {
-        var i = 0, a = new Array(2 * m.size);
-        m.forEach(function(v, k) {
-          a[i++] = k;
-          a[i++] = v;
-        });
-        return a;
-      }
-    }),
-    Immutable.OrderedMap, transit.makeWriteHandler({
-      tag: function() {
-        return 'iOM';
-      },
-      rep: function(m) {
-        var i = 0, a = new Array(2 * m.size);
-        m.forEach(function(v, k) {
-          a[i++] = k;
-          a[i++] = v;
-        });
-        return a;
-      }
-    }),
-    Immutable.List, transit.makeWriteHandler({
-      tag: function() {
-        return "iL";
-      },
-      rep: function(v) {
-        return v.toArray();
-      }
-    }),
-    Immutable.Set, transit.makeWriteHandler({
-      tag: function() {
-        return "iS";
-      },
-      rep: function(v) {
-        return v.toArray();
-      }
-    }),
-    Function, transit.makeWriteHandler({
-      tag: function() {
-        return '_';
-      },
-      rep: function() {
-        return null;
-      }
-    })
-  ])
-});
+var writer = createWriter(false);
 
 exports.toJSON = toJSON;
 function toJSON(data) {
@@ -101,4 +48,84 @@ function toJSON(data) {
 exports.fromJSON = fromJSON;
 function fromJSON(data) {
   return reader.read(data);
+}
+
+function withFilter(predicate) {
+  var filteredWriter = createWriter(predicate);
+  return {
+    toJSON: function(data) {
+      return filteredWriter.write(data);
+    },
+    fromJSON: fromJSON
+  }
+}
+exports.withFilter = withFilter;
+
+function createWriter(predicate) {
+  return transit.writer('json', {
+      handlers: transit.map([
+        Immutable.Map, transit.makeWriteHandler({
+          tag: function() {
+            return 'iM';
+          },
+          rep: function(m) {
+            var i = 0, a = new Array(2 * m.size);
+            if (predicate) {
+              m = m.filter(predicate);
+            }
+            m.forEach(function(v, k) {
+              a[i++] = k;
+              a[i++] = v;
+            });
+            return a;
+          }
+        }),
+        Immutable.OrderedMap, transit.makeWriteHandler({
+          tag: function() {
+            return 'iOM';
+          },
+          rep: function(m) {
+            var i = 0, a = new Array(2 * m.size);
+            if (predicate) {
+              m = m.filter(predicate);
+            }
+            m.forEach(function(v, k) {
+              a[i++] = k;
+              a[i++] = v;
+            });
+            return a;
+          }
+        }),
+        Immutable.List, transit.makeWriteHandler({
+          tag: function() {
+            return "iL";
+          },
+          rep: function(v) {
+            if (predicate) {
+              v = v.filter(predicate);
+            }
+            return v.toArray();
+          }
+        }),
+        Immutable.Set, transit.makeWriteHandler({
+          tag: function() {
+            return "iS";
+          },
+          rep: function(v) {
+            if (predicate) {
+              v = v.filter(predicate);
+            }
+            return v.toArray();
+          }
+        }),
+        Function, transit.makeWriteHandler({
+          tag: function() {
+            return '_';
+          },
+          rep: function() {
+            return null;
+          }
+        })
+      ])
+    });
 }

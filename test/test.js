@@ -101,4 +101,38 @@ describe('transit', function() {
     var result = transit.fromJSON(transit.toJSON(input));
     expect(result.get('a')).to.eql(null);
   });
+  describe('Using createWriter factory', function(){
+    it('should ignore if predicate is false', function() {
+      var input = Immutable.Map({ a: 'foo', _b: 'bar', c: Immutable.Map({d: 'deep', _e: 'hide'})});
+      var filter = transit.withFilter(function(val, key) { return key[0] !== '_'});
+      var result = filter.fromJSON(filter.toJSON(input));
+      expect(result.get('a')).to.eql('foo');
+      expect(result.get('_b')).to.be.undefined;
+      expect(result.getIn(['c', 'd'])).to.eql('deep');
+      expect(result.getIn(['c', '_e'])).to.be.undefined;
+
+      input = Immutable.OrderedMap().set('a', 'baz').set('_b', 'bar').set('c', Immutable.OrderedMap({d: 'deep', _e: 'hide'}));
+      result = filter.fromJSON(filter.toJSON(input));
+      expect(result.get('a')).to.eql('baz');
+      expect(result.get('_b')).to.be.undefined;
+      expect(result.getIn(['c', 'd'])).to.eql('deep');
+      expect(result.getIn(['c', '_e'])).to.be.undefined;
+
+      input = Immutable.OrderedMap().set('a', 'baz').set('_b', 'bar').set('c', Immutable.Map({d: 'deep', _e: 'hide'}));
+      result = filter.fromJSON(filter.toJSON(input));
+      expect(result.get('a')).to.eql('baz');
+      expect(result.get('_b')).to.be.undefined;
+      expect(result.getIn(['c', 'd'])).to.eql('deep');
+      expect(result.getIn(['c', '_e'])).to.be.undefined;
+
+      input = Immutable.Set.of(1, 2, 3, 3, 'a')
+      filter = transit.withFilter(function(val, key) { return typeof val === 'number'});
+      result = filter.fromJSON(filter.toJSON(input));
+      expect(result.includes('a')).to.be.false;
+
+      input = Immutable.List.of(1, 2, 3, 3, 'a')
+      result = filter.fromJSON(filter.toJSON(input));
+      expect(result.includes('a')).to.be.false;
+    });
+  });
 });
