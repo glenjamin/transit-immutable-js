@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "travis": "istanbul cover _mocha --"
+    "lint": "eslint .",
+    "travis": "npm run lint && istanbul cover _mocha --"
   },
   "repository": {
     "type": "git",
@@ -25,6 +26,7 @@
     "chai": "^2.3.0",
     "chai-immutable": "^1.2.0",
     "coveralls": "^2.11.2",
+    "eslint": "^0.24.1",
     "immutable": "^3.7.4",
     "istanbul": "^0.3.14",
     "mocha": "^2.2.5",

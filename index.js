@@ -57,7 +57,7 @@ function withFilter(predicate) {
       return filteredWriter.write(data);
     },
     fromJSON: fromJSON
-  }
+  };
 }
 exports.withFilter = withFilter;
 
