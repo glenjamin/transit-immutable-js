@@ -1,6 +1,6 @@
 {
   "name": "transit-immutable-js",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Transit serialisation for Immutable.js",
   "main": "index.js",
   "scripts": {
