@@ -57,3 +57,7 @@ Convert an immutable object into a JSON representation
 ### `transit.toJSON(string) => object`
 
 Convert a JSON representation back into an immutable object
+
+### `transit.withFilter(function) => transit`
+
+Create a modified version of the transit API that deeply applies the provided filter function to all immutable collections before serialising. Can be used to exclude entries.
