@@ -29,6 +29,8 @@ var samples = Immutable.Map({
 
     "Sets": Immutable.Set.of(1, 2, 3, 3),
 
+    "OrderedSets": Immutable.OrderedSet.of(1, 4, 3, 3),
+
     "Ordered Maps": Immutable.OrderedMap()
       .set(2, 'a')
       .set(3, 'b')
