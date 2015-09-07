@@ -130,7 +130,7 @@ describe('transit', function() {
     });
 
     it('can ignore Set entries', function() {
-      var input = Immutable.Set.of(1, 2, 3, 3, 'a');
+      var input = Immutable.OrderedSet.of(1, 2, 3, 3, 'a');
       filter = transit.withFilter(function(val) {
         return typeof val === 'number';
       });
