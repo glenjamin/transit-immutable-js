@@ -138,6 +138,15 @@ describe('transit', function() {
       expect(result.includes('a')).to.eql(false);
     });
 
+    it('can ignore OrderedSet entries', function() {
+      var input = Immutable.Set.of(1, 2, 3, 3, 'a');
+      filter = transit.withFilter(function(val) {
+        return typeof val === 'number';
+      });
+      var result = filter.fromJSON(filter.toJSON(input));
+      expect(result.includes('a')).to.eql(false);
+    });
+
     it('can ignore List entries', function() {
       var input = Immutable.List.of(1, 2, 3, 3, 'a');
       var result = filter.fromJSON(filter.toJSON(input));
