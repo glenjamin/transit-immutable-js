@@ -34,6 +34,9 @@ var reader = transit.reader('json', {
     },
     iS: function(v) {
       return Immutable.Set(v);
+    },
+    iOS: function(v) {
+      return Immutable.OrderedSet(v);
     }
   }
 });
@@ -110,6 +113,17 @@ function createWriter(predicate) {
         Immutable.Set, transit.makeWriteHandler({
           tag: function() {
             return "iS";
+          },
+          rep: function(v) {
+            if (predicate) {
+              v = v.filter(predicate);
+            }
+            return v.toArray();
+          }
+        }),
+        Immutable.OrderedSet, transit.makeWriteHandler({
+          tag: function() {
+            return "iOS";
           },
           rep: function(v) {
             if (predicate) {
