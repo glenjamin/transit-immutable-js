@@ -153,4 +153,65 @@ describe('transit', function() {
       expect(result.includes('a')).to.eql(false);
     });
   });
+
+  describe('records', function() {
+    var FooRecord = Immutable.Record({
+      a: '1',
+      b: '2'
+    }, 'foo');
+
+    var BarRecord = Immutable.Record({
+      c: '1',
+      d: '2'
+    }, 'bar');
+
+    var NamelessRecord = Immutable.Record({});
+
+    it('can (de)serialize Record types', function() {
+      var recordTransit = transit.withRecords([FooRecord, BarRecord]);
+
+      var input = Immutable.Map({
+        myFoo: new FooRecord(),
+        myBar: new BarRecord()
+      });
+
+      var json = recordTransit.toJSON(input);
+      var result = recordTransit.fromJSON(json);
+
+      expect(result.get('myFoo').a).to.eql('1');
+      expect(result.get('myFoo').b).to.eql('2');
+      expect(result.get('myBar').c).to.eql('1');
+      expect(result.get('myBar').d).to.eql('2');
+    });
+
+    it('throws an error when it writes an unknown record type', function() {
+      var recordTransit = transit.withRecords([]);
+
+      var input = new FooRecord();
+
+      expect(function() {
+        recordTransit.toJSON(input);
+      }).to.throw();
+    });
+
+    it('throws an error when it is passed a record with no name', function() {
+      expect(function() {
+        transit.withRecords([NamelessRecord]);
+      }).to.throw();
+    });
+
+    it('throws an error when it reads an unknown record type', function() {
+      var recordTransit = transit.withRecords([FooRecord]);
+
+      var input = new FooRecord();
+
+      var json = recordTransit.toJSON(input);
+
+      recordTransit = transit.withRecords([]);
+
+      expect(function() {
+        recordTransit.fromJSON(json);
+      }).to.throw();
+    });
+  });
 });
