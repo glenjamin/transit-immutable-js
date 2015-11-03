@@ -50,11 +50,11 @@ console.log(transit.fromJSON(transit.toJSON(obj)));
 
 ## API
 
-### `transit.fromJSON(object) => string`
+### `transit.toJSON(object) => string`
 
 Convert an immutable object into a JSON representation
 
-### `transit.toJSON(string) => object`
+### `transit.fromJSON(string) => object`
 
 Convert a JSON representation back into an immutable object
 
