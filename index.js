@@ -3,7 +3,7 @@ var Immutable = require('immutable');
 
 function recordName(record) {
   /* eslint no-underscore-dangle: 0 */
-  return record._name;
+  return record._name || record.constructor.name || 'Record';
 }
 
 function createReader(recordMap) {
@@ -47,8 +47,8 @@ function createReader(recordMap) {
       iR: function(v) {
         var Record = recordMap[v.n];
         if (!Record) {
-          var msg = ('Tried to deserialize Record type named `' + v.n + '`, ' +
-                     'but no type with that name was passed to withRecords()');
+          var msg = 'Tried to deserialize Record type named `' + v.n + '`, ' +
+                    'but no type with that name was passed to withRecords()';
           throw new Error(msg);
         }
 
@@ -83,66 +83,75 @@ function withFilter(predicate) {
 }
 exports.withFilter = withFilter;
 
-function withRecords(records, predicate) {
+function withRecords(records) {
   var recordMap = {};
 
   records.forEach(function(RecordType) {
     var rec = new RecordType({});
+    var recName = recordName(rec);
 
-    if (!recordName(rec)) {
-      throw new Error('Cannot (de)serialize Record() without a name field');
+    if (!recName || recName === 'Record') {
+      throw new Error('Cannot (de)serialize Record() without a name');
     }
 
-    recordMap[recordName(rec)] = RecordType;
+    if (recordMap[recName]) {
+      throw new Error('There\'s already a constructor for a Record named ' +
+                      recName);
+    }
+    recordMap[recName] = RecordType;
   });
 
-  var recordWriter = createWriter(predicate, recordMap);
+  var recordWriter = createWriter(null, recordMap);
   var recordReader = createReader(recordMap);
 
-  return {
-    toJSON: function(data) {
+  var toRecordJSON = function(data) {
       return recordWriter.write(data);
-    },
-    fromJSON: function(data) {
+    };
+
+  var fromRecordJSON = function(data) {
       return recordReader.read(data);
+    };
+  return {
+    toJSON: toRecordJSON,
+    fromJSON: fromRecordJSON,
+
+    withFilter: function(predicate) {
+      recordWriter = createWriter(predicate, recordMap);
+
+      return {
+        toJSON: toRecordJSON,
+        fromJSON: fromRecordJSON
+      };
     }
   };
 }
 exports.withRecords = withRecords;
 
 function createWriter(predicate, recordMap) {
+  function mapSerializer(m) {
+    var i = 0, a = new Array(2 * m.size);
+    if (predicate) {
+      m = m.filter(predicate);
+    }
+    m.forEach(function(v, k) {
+      a[i++] = k;
+      a[i++] = v;
+    });
+    return a;
+  }
+
   var handlers = transit.map([
     Immutable.Map, transit.makeWriteHandler({
       tag: function() {
         return 'iM';
       },
-      rep: function(m) {
-        var i = 0, a = new Array(2 * m.size);
-        if (predicate) {
-          m = m.filter(predicate);
-        }
-        m.forEach(function(v, k) {
-          a[i++] = k;
-          a[i++] = v;
-        });
-        return a;
-      }
+      rep: mapSerializer
     }),
     Immutable.OrderedMap, transit.makeWriteHandler({
       tag: function() {
         return 'iOM';
       },
-      rep: function(m) {
-        var i = 0, a = new Array(2 * m.size);
-        if (predicate) {
-          m = m.filter(predicate);
-        }
-        m.forEach(function(v, k) {
-          a[i++] = k;
-          a[i++] = v;
-        });
-        return a;
-      }
+      rep: mapSerializer
     }),
     Immutable.List, transit.makeWriteHandler({
       tag: function() {
@@ -184,30 +193,39 @@ function createWriter(predicate, recordMap) {
       rep: function() {
         return null;
       }
-    })
+    }),
+    "default", transit.makeWriteHandler({
+      tag: function() {
+        return 'iM';
+      },
+      rep: function(m) {
+        if (!('toMap' in m)) {
+          var e = "Error serializing unrecognized object " + m.toString();
+          throw new Error(e);
+        }
+        return mapSerializer(m.toMap());
+      }
+    }),
   ]);
 
-  for (var name in recordMap) {
+  Object.keys(recordMap).forEach(function(name) {
     handlers.set(recordMap[name], makeRecordHandler(name, predicate));
-  }
+  });
 
   return transit.writer('json', {
     handlers: handlers
   });
 }
 
-function makeRecordHandler(name, predicate) {
+function makeRecordHandler(name) {
   return transit.makeWriteHandler({
     tag: function() {
       return 'iR';
     },
     rep: function(m) {
-      if (predicate) {
-        m = m.filter(predicate);
-      }
       return {
         n: name,
-        v: m.toJS()
+        v: m.toObject()
       };
     }
   });

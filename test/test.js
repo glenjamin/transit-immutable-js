@@ -35,7 +35,6 @@ var samples = Immutable.Map({
       .set(2, 'a')
       .set(3, 'b')
       .set(1, 'c')
-
   }),
 
   JS: Immutable.Map({
@@ -103,10 +102,111 @@ describe('transit', function() {
     var result = transit.fromJSON(transit.toJSON(input));
     expect(result.get('a')).to.eql(null);
   });
-  describe('.withFilter(predicate)', function(){
-    var filter = transit.withFilter(function(val, key) {
-      return key[0] !== '_';
+
+  describe('Records', function() {
+    var FooRecord = Immutable.Record({
+      a: 1,
+      b: 2,
+    }, 'foo');
+
+    var BarRecord = Immutable.Record({
+      c: '1',
+      d: '2'
+    }, 'bar');
+
+    var NamelessRecord = Immutable.Record({});
+
+    var recordTransit = transit.withRecords([FooRecord, BarRecord]);
+
+    it('should round-trip simple records', function() {
+      var data = Immutable.Map({
+        myFoo: new FooRecord(),
+        myBar: new BarRecord()
+      });
+
+      var roundTrip = recordTransit.fromJSON(recordTransit.toJSON(data));
+      expect(roundTrip).to.eql(data);
+
+      expect(roundTrip.get('myFoo').a).to.eql(1);
+      expect(roundTrip.get('myFoo').b).to.eql(2);
+
+      expect(roundTrip.get('myBar').c).to.eql('1');
+      expect(roundTrip.get('myBar').d).to.eql('2');
     });
+
+    it('should round-trip complex nested records', function() {
+      var data = Immutable.Map({
+        foo: new FooRecord({
+          b: Immutable.List.of(BarRecord(), BarRecord({c: 22}))
+        }),
+        bar: new BarRecord()
+      });
+
+      var roundTrip = recordTransit.fromJSON(recordTransit.toJSON(data));
+      expect(roundTrip).to.eql(data);
+    });
+
+    it('should serialize unspecified Record as a Map', function() {
+      var data = Immutable.Map({
+        myFoo: new FooRecord(),
+        myBar: new BarRecord()
+      });
+
+      var oneRecordTransit = transit.withRecords([FooRecord]);
+      var roundTripOneRecord = oneRecordTransit.fromJSON(
+                                oneRecordTransit.toJSON(data));
+
+      expect(roundTripOneRecord).to.eql(
+        Immutable.fromJS({
+          myFoo: new FooRecord(),
+          myBar: {c: '1', d: '2'}
+        })
+      );
+
+      var roundTripWithoutRecords = transit.fromJSON(transit.toJSON(data));
+
+      expect(roundTripWithoutRecords).to.eql(
+        Immutable.fromJS({
+          myFoo: {a: 1, b: 2},
+          myBar: {c: '1', d: '2'}
+        })
+      );
+    });
+
+    it('throws an error when it is passed a record with no name', function() {
+      expect(function() {
+        transit.withRecords([NamelessRecord]);
+      }).to.throw();
+    });
+
+    it('throws an error when it reads an unknown record type', function() {
+      var input = new FooRecord();
+
+      var json = recordTransit.toJSON(input);
+
+      var emptyRecordTransit = transit.withRecords([]);
+
+      expect(function() {
+        emptyRecordTransit.fromJSON(json);
+      }).to.throw();
+    });
+
+    it('throws an error if two records have the same name', function() {
+      var R1 = Immutable.Record({}, 'R1');
+      var R1_2 = Immutable.Record({}, 'R1');
+
+      expect(function() {
+        transit.withRecords([R1, R1_2]);
+      }).to.throw();
+    });
+  });
+
+  describe('.withFilter(predicate)', function(){
+    var filterFunction = function(val, key) {
+      return key[0] !== '_';
+    };
+    var filter = transit.withFilter(filterFunction);
+
     it('can ignore Map entries', function() {
       var input = Immutable.Map({
         a: 'foo', _b: 'bar', c: Immutable.Map({d: 'deep', _e: 'hide'})
@@ -152,66 +252,36 @@ describe('transit', function() {
       var result = filter.fromJSON(filter.toJSON(input));
       expect(result.includes('a')).to.eql(false);
     });
+
+    it('can ignore Maps nested in Records', function() {
+      var MyRecord = Immutable.Record({
+        a: null,
+        _b: 'bar'
+      }, 'myRecord');
+
+      var input = new MyRecord({a: Immutable.Map({_c: 1, d: 2}), _b: 'baz' });
+      var recordFilter = transit
+                          .withRecords([MyRecord])
+                          .withFilter(filterFunction);
+
+      var result = recordFilter.fromJSON(recordFilter.toJSON(input));
+
+      expect(result.getIn(['a', 'd'])).to.eql(2);
+      expect(result.getIn(['a', '_c'])).to.eql(undefined);
+      expect(result.get('_b')).to.eql('baz');
+
+    });
   });
 
-  describe('records', function() {
-    var FooRecord = Immutable.Record({
-      a: '1',
-      b: '2'
-    }, 'foo');
-
-    var BarRecord = Immutable.Record({
-      c: '1',
-      d: '2'
-    }, 'bar');
-
-    var NamelessRecord = Immutable.Record({});
-
-    it('can (de)serialize Record types', function() {
-      var recordTransit = transit.withRecords([FooRecord, BarRecord]);
-
-      var input = Immutable.Map({
-        myFoo: new FooRecord(),
-        myBar: new BarRecord()
-      });
-
-      var json = recordTransit.toJSON(input);
-      var result = recordTransit.fromJSON(json);
-
-      expect(result.get('myFoo').a).to.eql('1');
-      expect(result.get('myFoo').b).to.eql('2');
-      expect(result.get('myBar').c).to.eql('1');
-      expect(result.get('myBar').d).to.eql('2');
-    });
-
-    it('throws an error when it writes an unknown record type', function() {
-      var recordTransit = transit.withRecords([]);
-
-      var input = new FooRecord();
+  describe('Unknown Input', function() {
+    it('fails when an unrecognized object is passed', function() {
+      var MyObject = function() {};
+      var MyObjectInstance = new MyObject();
 
       expect(function() {
-        recordTransit.toJSON(input);
-      }).to.throw();
-    });
-
-    it('throws an error when it is passed a record with no name', function() {
-      expect(function() {
-        transit.withRecords([NamelessRecord]);
-      }).to.throw();
-    });
-
-    it('throws an error when it reads an unknown record type', function() {
-      var recordTransit = transit.withRecords([FooRecord]);
-
-      var input = new FooRecord();
-
-      var json = recordTransit.toJSON(input);
-
-      recordTransit = transit.withRecords([]);
-
-      expect(function() {
-        recordTransit.fromJSON(json);
+        transit.toJSON(MyObjectInstance);
       }).to.throw();
     });
   });
+
 });
