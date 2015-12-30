@@ -59,75 +59,7 @@ function createReader(recordMap) {
 
 }
 
-var reader = createReader([]);
-var writer = createWriter(false, []);
-
-exports.toJSON = toJSON;
-function toJSON(data) {
-  return writer.write(data);
-}
-
-exports.fromJSON = fromJSON;
-function fromJSON(data) {
-  return reader.read(data);
-}
-
-function withFilter(predicate) {
-  var filteredWriter = createWriter(predicate, []);
-  return {
-    toJSON: function(data) {
-      return filteredWriter.write(data);
-    },
-    fromJSON: fromJSON
-  };
-}
-exports.withFilter = withFilter;
-
-function withRecords(records) {
-  var recordMap = {};
-
-  records.forEach(function(RecordType) {
-    var rec = new RecordType({});
-    var recName = recordName(rec);
-
-    if (!recName || recName === 'Record') {
-      throw new Error('Cannot (de)serialize Record() without a name');
-    }
-
-    if (recordMap[recName]) {
-      throw new Error('There\'s already a constructor for a Record named ' +
-                      recName);
-    }
-    recordMap[recName] = RecordType;
-  });
-
-  var recordWriter = createWriter(null, recordMap);
-  var recordReader = createReader(recordMap);
-
-  var toRecordJSON = function(data) {
-      return recordWriter.write(data);
-    };
-
-  var fromRecordJSON = function(data) {
-      return recordReader.read(data);
-    };
-  return {
-    toJSON: toRecordJSON,
-    fromJSON: fromRecordJSON,
-
-    withFilter: function(predicate) {
-      recordWriter = createWriter(predicate, recordMap);
-
-      return {
-        toJSON: toRecordJSON,
-        fromJSON: fromRecordJSON
-      };
-    }
-  };
-}
-exports.withRecords = withRecords;
-
-function createWriter(predicate, recordMap) {
+function createWriter(recordMap, predicate) {
   function mapSerializer(m) {
     var i = 0, a = new Array(2 * m.size);
     if (predicate) {
@@ -230,3 +162,50 @@ function makeRecordHandler(name) {
     }
   });
 }
+
+function buildRecordMap(recordClasses) {
+  var recordMap = {};
+
+  recordClasses.forEach(function(RecordType) {
+    var rec = new RecordType({});
+    var recName = recordName(rec);
+
+    if (!recName || recName === 'Record') {
+      throw new Error('Cannot (de)serialize Record() without a name');
+    }
+
+    if (recordMap[recName]) {
+      throw new Error('There\'s already a constructor for a Record named ' +
+                      recName);
+    }
+    recordMap[recName] = RecordType;
+  });
+
+  return recordMap;
+}
+
+function createInstance(options) {
+  var records = options.records || {};
+  var filter = options.filter || false;
+
+  var reader = createReader(records);
+  var writer = createWriter(records, filter);
+
+  return {
+    toJSON: function toJSON(data) {
+      return writer.write(data);
+    },
+    fromJSON: function fromJSON(json) {
+      return reader.read(json);
+    },
+    withFilter: function(predicate) {
+      return createInstance({ records: records, filter: predicate });
+    },
+    withRecords: function(recordClasses) {
+      var recordMap = buildRecordMap(recordClasses);
+      return createInstance({ records: recordMap, filter: filter });
+    }
+  };
+}
+
+module.exports = createInstance({});

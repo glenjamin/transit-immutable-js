@@ -58,11 +58,13 @@ Convert an immutable object into a JSON representation
 
 Convert a JSON representation back into an immutable object
 
+> The `withXXX` methods can be combined as desired.
+
 ### `transit.withFilter(function) => transit`
 
 Create a modified version of the transit API that deeply applies the provided filter function to all immutable collections before serialising. Can be used to exclude entries.
 
-### `transit.withRecords([recordClasses])[.withFilter(function)] => transit`
+### `transit.withRecords(Array recordClasses) => transit`
 
 Creates a modified version of the transit API with support for serializing/deserializing [Record](https://facebook.github.io/immutable-js/docs/#/) objects. If a Record is included in an object to be serialized without the proper handler, on encoding it will be encoded as an `Immutable.Map`.
 
