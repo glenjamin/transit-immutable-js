@@ -1,6 +1,8 @@
 # transit-immutable-js
 
-Transit serialisation for Immutable.js
+[Transit](https://github.com/cognitect/transit-js) serialisation for [Immutable.js](https://facebook.github.io/immutable-js/).
+
+Transit is a serialisation format which builds on top of JSON to provide a richer set of types. It is extensible, which makes it a good choice for easily providing serialisation and deserialisation capabilities for Immutable's types. 
 
 [![npm version](https://img.shields.io/npm/v/transit-immutable-js.svg)](https://www.npmjs.com/package/transit-immutable-js) [![Build Status](https://img.shields.io/travis/glenjamin/transit-immutable-js/master.svg)](https://travis-ci.org/glenjamin/transit-immutable-js) [![Coverage Status](https://coveralls.io/repos/glenjamin/transit-immutable-js/badge.svg?branch=master)](https://coveralls.io/r/glenjamin/transit-immutable-js?branch=master) ![MIT Licensed](https://img.shields.io/npm/l/transit-immutable-js.svg)
 
