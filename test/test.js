@@ -66,6 +66,14 @@ var samples = Immutable.Map({
 
 });
 
+// This is a hack because records and maps are considered equivalent by
+// chai-immutable.
+// https://github.com/astorije/chai-immutable/issues/37
+function expectRecordsEqual(r1, r2) {
+  expect(r1).to.eql(r2);
+  expect(r1.toString()).to.eql(r2.toString());
+}
+
 describe('transit', function() {
   samples.get('Immutable').forEach(function(data, desc) {
     describe(desc + " - " + data.inspect(), function() {
@@ -125,7 +133,7 @@ describe('transit', function() {
       });
 
       var roundTrip = recordTransit.fromJSON(recordTransit.toJSON(data));
-      expect(roundTrip).to.eql(data);
+      expectRecordsEqual(data, roundTrip);
 
       expect(roundTrip.get('myFoo').a).to.eql(1);
       expect(roundTrip.get('myFoo').b).to.eql(2);
@@ -143,7 +151,7 @@ describe('transit', function() {
       });
 
       var roundTrip = recordTransit.fromJSON(recordTransit.toJSON(data));
-      expect(roundTrip).to.eql(data);
+      expectRecordsEqual(data, roundTrip);
     });
 
     it('should serialize unspecified Record as a Map', function() {
@@ -156,12 +164,11 @@ describe('transit', function() {
       var roundTripOneRecord = oneRecordTransit.fromJSON(
                                 oneRecordTransit.toJSON(data));
 
-      expect(roundTripOneRecord).to.eql(
-        Immutable.fromJS({
-          myFoo: new FooRecord(),
-          myBar: {c: '1', d: '2'}
-        })
-      );
+      var equivalentMap = Immutable.fromJS({
+        myFoo: new FooRecord(),
+        myBar: {c: '1', d: '2'}
+      });
+      expectRecordsEqual(roundTripOneRecord, equivalentMap);
 
       var roundTripWithoutRecords = transit.fromJSON(transit.toJSON(data));
 
@@ -171,6 +178,18 @@ describe('transit', function() {
           myBar: {c: '1', d: '2'}
         })
       );
+    });
+
+    it('should roundtrip ES6-class-style records', function() {
+      var ClassyBase = Immutable.Record({name: 'lindsey'}, 'ClassyRecord');
+      function ClassyRecord(values){ ClassyBase.call(this, values); }
+      ClassyRecord.prototype = Object.create(ClassyBase.prototype);
+      ClassyRecord.prototype.constructor = ClassyRecord;
+
+      var data = new ClassyRecord({name: 'jon'});
+      var classyTransit = transit.withRecords([ClassyRecord]);
+      var roundTrip = classyTransit.fromJSON(classyTransit.toJSON(data));
+      expectRecordsEqual(data, roundTrip);
     });
 
     it('throws an error when it is passed a record with no name', function() {
