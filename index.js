@@ -45,14 +45,14 @@ function createReader(recordMap) {
         return Immutable.OrderedSet(v);
       },
       iR: function(v) {
-        var Record = recordMap[v.n];
-        if (!Record) {
+        var RecordConstructor = recordMap[v.n];
+        if (!RecordConstructor) {
           var msg = 'Tried to deserialize Record type named `' + v.n + '`, ' +
                     'but no type with that name was passed to withRecords()';
           throw new Error(msg);
         }
 
-        return Record(v.v);
+        return new RecordConstructor(v.v);
       }
     }
   });
