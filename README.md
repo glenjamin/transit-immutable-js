@@ -81,5 +81,5 @@ var FooRecord = Immutable.Record({
 var data = new FooRecord();
 
 var recordTransit = transit.withRecords([FooRecord]);
-var encodedJSON = transit.toJSON(data);
+var encodedJSON = recordTransit.toJSON(data);
 ```
