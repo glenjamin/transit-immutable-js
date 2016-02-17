@@ -137,7 +137,7 @@ function createWriter(recordMap, predicate) {
         }
         return mapSerializer(m.toMap());
       }
-    }),
+    })
   ]);
 
   Object.keys(recordMap).forEach(function(name) {
