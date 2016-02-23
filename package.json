@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha",
     "lint": "eslint .",
-    "travis": "npm run lint && istanbul cover _mocha --"
+    "coverage": "istanbul cover _mocha --"
   },
   "repository": {
     "type": "git",
