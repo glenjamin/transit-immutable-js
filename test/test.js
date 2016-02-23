@@ -244,8 +244,10 @@ describe('transit', function() {
       var result = filter.fromJSON(filter.toJSON(input));
       expect(result.get('a')).to.eql('foo');
       expect(result.get('_b')).to.eql(undefined);
+      expect(result.size).to.eql(2);
       expect(result.getIn(['c', 'd'])).to.eql('deep');
       expect(result.getIn(['c', '_e'])).to.eql(undefined);
+      expect(result.getIn(['c']).size).to.eql(1);
     });
 
     it('can ignore OrderedMap entries', function() {
@@ -255,8 +257,10 @@ describe('transit', function() {
       var result = filter.fromJSON(filter.toJSON(input));
       expect(result.get('a')).to.eql('baz');
       expect(result.get('_b')).to.eql(undefined);
+      expect(result.size).to.eql(2);
       expect(result.getIn(['c', 'd'])).to.eql('deep');
       expect(result.getIn(['c', '_e'])).to.eql(undefined);
+      expect(result.getIn(['c']).size).to.eql(1);
     });
 
     it('can ignore Set entries', function() {
@@ -266,6 +270,7 @@ describe('transit', function() {
       });
       var result = filter.fromJSON(filter.toJSON(input));
       expect(result.includes('a')).to.eql(false);
+      expect(result.size).to.eql(3);
     });
 
     it('can ignore OrderedSet entries', function() {
@@ -275,12 +280,14 @@ describe('transit', function() {
       });
       var result = filter.fromJSON(filter.toJSON(input));
       expect(result.includes('a')).to.eql(false);
+      expect(result.size).to.eql(3);
     });
 
     it('can ignore List entries', function() {
       var input = Immutable.List.of(1, 2, 3, 3, 'a');
       var result = filter.fromJSON(filter.toJSON(input));
       expect(result.includes('a')).to.eql(false);
+      expect(result.size).to.eql(4);
     });
 
     it('can ignore Maps nested in Records', function() {
@@ -298,6 +305,7 @@ describe('transit', function() {
 
       expect(result.getIn(['a', 'd'])).to.eql(2);
       expect(result.getIn(['a', '_c'])).to.eql(undefined);
+      expect(result.get('a').size).to.eql(1);
       expect(result.get('_b')).to.eql('baz');
     });
 
