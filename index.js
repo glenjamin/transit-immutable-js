@@ -61,11 +61,11 @@ function createReader(recordMap) {
 
 function createWriter(recordMap, predicate) {
   function mapSerializer(m) {
-    var i = 0, a = null;
+    var i = 0;
     if (predicate) {
       m = m.filter(predicate);
     }
-    a = new Array(2 * m.size)
+    var a = new Array(2 * m.size);
     m.forEach(function(v, k) {
       a[i++] = k;
       a[i++] = v;
