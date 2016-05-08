@@ -355,7 +355,7 @@ describe('transit', function() {
       }, 'bar');
 
       var input = new Immutable.Map({
-        _bar: new BarRecord,
+        _bar: new BarRecord(),
         foo: new FooRecord({
           a: 3,
           b: 4
