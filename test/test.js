@@ -229,6 +229,40 @@ describe('transit', function() {
         transit.withRecords([R1, R1_2]);
       }).to.throw();
     });
+
+    it('should not throw an error with custom error-handler', function() {
+      var input = new FooRecord();
+
+      var json = recordTransit.toJSON(input);
+
+      var emptyRecordTransit = transit.withRecords([], function() {
+        return null;
+      });
+
+      expect(function() {
+        emptyRecordTransit.fromJSON(json);
+      }).to.not.throw();
+    });
+
+    it('should deserializing a FooRecord to BarRecord', function() {
+      var input = new FooRecord({a: '3', b: '4'});
+
+      var json = recordTransit.toJSON(input);
+
+      var emptyRecordTransit = transit.withRecords([], function(n, v) {
+        switch (n) {
+        case 'foo':
+          return new BarRecord({c: v.a, d: v.b});
+        default:
+          return null;
+        }
+      });
+      var result = emptyRecordTransit.fromJSON(json);
+
+      expect(result).to.be.an.instanceof(BarRecord);
+      expect(result.c).to.eql('3');
+      expect(result.d).to.eql('4');
+    });
   });
 
   describe('.withFilter(predicate)', function(){
@@ -307,6 +341,49 @@ describe('transit', function() {
       expect(result.getIn(['a', '_c'])).to.eql(undefined);
       expect(result.get('a').size).to.eql(1);
       expect(result.get('_b')).to.eql('baz');
+    });
+
+    it('should use missing-record-handler combined with filter', function() {
+      var FooRecord = Immutable.Record({
+        a: 1,
+        b: 2,
+      }, 'foo');
+
+      var BarRecord = Immutable.Record({
+        c: '1',
+        d: '2'
+      }, 'bar');
+
+      var input = new Immutable.Map({
+        _bar: new BarRecord(),
+        foo: new FooRecord({
+          a: 3,
+          b: 4
+        })
+      });
+
+      var missingRecordHandler = function(n, v) {
+        switch (n) {
+        case 'foo':
+          return new BarRecord({c: v.a, d: v.b});
+        default:
+          return null;
+        }
+      };
+
+      var recordFilter = transit
+                          .withRecords([FooRecord, BarRecord])
+                          .withFilter(filterFunction);
+      var json = recordFilter.toJSON(input);
+      recordFilter = transit
+                      .withRecords([BarRecord], missingRecordHandler)
+                      .withFilter(filterFunction);
+
+      var result = recordFilter.fromJSON(json);
+
+      expect(result.get('foo').c).to.eql(3);
+      expect(result.get('foo').d).to.eql(4);
+      expect(result.get('_bar')).to.eql(undefined);
     });
 
   });

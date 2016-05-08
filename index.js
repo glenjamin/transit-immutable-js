@@ -6,7 +6,7 @@ function recordName(record) {
   return record._name || record.constructor.name || 'Record';
 }
 
-function createReader(recordMap) {
+function createReader(recordMap, missingRecordHandler) {
   return transit.reader('json', {
     mapBuilder: {
       init: function() {
@@ -47,9 +47,7 @@ function createReader(recordMap) {
       iR: function(v) {
         var RecordType = recordMap[v.n];
         if (!RecordType) {
-          var msg = 'Tried to deserialize Record type named `' + v.n + '`, ' +
-                    'but no type with that name was passed to withRecords()';
-          throw new Error(msg);
+          return missingRecordHandler(v.n, v.v);
         }
 
         return new RecordType(v.v);
@@ -185,11 +183,19 @@ function buildRecordMap(recordClasses) {
   return recordMap;
 }
 
+function defaultMissingRecordHandler(recName) {
+  var msg = 'Tried to deserialize Record type named `' + recName + '`, ' +
+            'but no type with that name was passed to withRecords()';
+  throw new Error(msg);
+}
+
 function createInstance(options) {
   var records = options.records || {};
   var filter = options.filter || false;
+  var missingRecordFn = options.missingRecordHandler
+                          || defaultMissingRecordHandler;
 
-  var reader = createReader(records);
+  var reader = createReader(records, missingRecordFn);
   var writer = createWriter(records, filter);
 
   return {
@@ -200,11 +206,19 @@ function createInstance(options) {
       return reader.read(json);
     },
     withFilter: function(predicate) {
-      return createInstance({ records: records, filter: predicate });
+      return createInstance({
+        records: records,
+        filter: predicate,
+        missingRecordHandler: missingRecordFn
+      });
     },
-    withRecords: function(recordClasses) {
+    withRecords: function(recordClasses, missingRecordHandler) {
       var recordMap = buildRecordMap(recordClasses);
-      return createInstance({ records: recordMap, filter: filter });
+      return createInstance({
+        records: recordMap,
+        filter: filter,
+        missingRecordHandler: missingRecordHandler
+      });
     }
   };
 }
