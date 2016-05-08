@@ -230,29 +230,31 @@ describe('transit', function() {
       }).to.throw();
     });
 
-    it('throws no error when it reads an unknown record type and has a custom error-handler specified', () => {
+    it('should not throw an error with custom error-handler', function() {
       var input = new FooRecord();
 
       var json = recordTransit.toJSON(input);
 
-      var emptyRecordTransit = transit.withRecords([], function (n, v) { return null; });
+      var emptyRecordTransit = transit.withRecords([], function() {
+        return null;
+      });
 
       expect(function() {
         emptyRecordTransit.fromJSON(json);
       }).to.not.throw();
     });
 
-    it('deserializing a FooRecord to BarRecord with a custom missing records handler', () => {
+    it('should deserializing a FooRecord to BarRecord', function() {
       var input = new FooRecord({a: '3', b: '4'});
 
       var json = recordTransit.toJSON(input);
 
-      var emptyRecordTransit = transit.withRecords([], function (n, v) {
+      var emptyRecordTransit = transit.withRecords([], function(n, v) {
         switch (n) {
-          case 'foo':
-            return new BarRecord({c: v.a, d: v.b});
-          default:
-            return null;
+        case 'foo':
+          return new BarRecord({c: v.a, d: v.b});
+        default:
+          return null;
         }
       });
       var result = emptyRecordTransit.fromJSON(json);

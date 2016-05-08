@@ -183,8 +183,8 @@ function buildRecordMap(recordClasses) {
   return recordMap;
 }
 
-function defaultMissingRecordHandler (recordName, value) {
-  var msg = 'Tried to deserialize Record type named `' + recordName + '`, ' +
+function defaultMissingRecordHandler(recName) {
+  var msg = 'Tried to deserialize Record type named `' + recName + '`, ' +
             'but no type with that name was passed to withRecords()';
   throw new Error(msg);
 }
@@ -192,9 +192,10 @@ function defaultMissingRecordHandler (recordName, value) {
 function createInstance(options) {
   var records = options.records || {};
   var filter = options.filter || false;
-  var missingRecordHandler = options.missingRecordHandler || defaultMissingRecordHandler;
+  var missingRecordFn = options.missingRecordHandler
+                          || defaultMissingRecordHandler;
 
-  var reader = createReader(records, missingRecordHandler);
+  var reader = createReader(records, missingRecordFn);
   var writer = createWriter(records, filter);
 
   return {
@@ -209,7 +210,11 @@ function createInstance(options) {
     },
     withRecords: function(recordClasses, missingRecordHandler) {
       var recordMap = buildRecordMap(recordClasses);
-      return createInstance({ records: recordMap, filter: filter, missingRecordHandler: missingRecordHandler });
+      return createInstance({
+        records: recordMap,
+        filter: filter,
+        missingRecordHandler: missingRecordHandler
+      });
     }
   };
 }
