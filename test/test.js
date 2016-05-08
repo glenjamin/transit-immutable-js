@@ -343,6 +343,49 @@ describe('transit', function() {
       expect(result.get('_b')).to.eql('baz');
     });
 
+    it('should use missing-record-handler combined with filter', function() {
+      var FooRecord = Immutable.Record({
+        a: 1,
+        b: 2,
+      }, 'foo');
+
+      var BarRecord = Immutable.Record({
+        c: '1',
+        d: '2'
+      }, 'bar');
+
+      var input = new Immutable.Map({
+        _bar: new BarRecord,
+        foo: new FooRecord({
+          a: 3,
+          b: 4
+        })
+      });
+
+      var missingRecordHandler = function(n, v) {
+        switch (n) {
+        case 'foo':
+          return new BarRecord({c: v.a, d: v.b});
+        default:
+          return null;
+        }
+      };
+
+      var recordFilter = transit
+                          .withRecords([FooRecord, BarRecord])
+                          .withFilter(filterFunction);
+      var json = recordFilter.toJSON(input);
+      recordFilter = transit
+                      .withRecords([BarRecord], missingRecordHandler)
+                      .withFilter(filterFunction);
+
+      var result = recordFilter.fromJSON(json);
+
+      expect(result.get('foo').c).to.eql(3);
+      expect(result.get('foo').d).to.eql(4);
+      expect(result.get('_bar')).to.eql(undefined);
+    });
+
   });
 
   describe('Unknown Input', function() {

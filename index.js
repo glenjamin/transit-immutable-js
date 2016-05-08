@@ -206,7 +206,11 @@ function createInstance(options) {
       return reader.read(json);
     },
     withFilter: function(predicate) {
-      return createInstance({ records: records, filter: predicate });
+      return createInstance({
+        records: records,
+        filter: predicate,
+        missingRecordHandler: missingRecordFn
+      });
     },
     withRecords: function(recordClasses, missingRecordHandler) {
       var recordMap = buildRecordMap(recordClasses);
