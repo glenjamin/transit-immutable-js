@@ -12,7 +12,7 @@ Transit is a serialisation format which builds on top of JSON to provide a riche
 npm install transit-immutable-js
 ```
 
-You must also be using `immutable` for this to be any use.
+You must also be using `immutable` for this to be of any use.
 
 I have chosen to apply very broad npm peerDependencies for simplicity, please check that the versions you have pulled in actually work.
 
@@ -54,7 +54,7 @@ console.log(transit.fromJSON(transit.toJSON(obj)));
 
 ### `transit.toJSON(object) => string`
 
-Convert an immutable object into a JSON representation
+Convert an immutable object into a JSON representation ([XSS Warning](#xss-warning))
 
 ### `transit.fromJSON(string) => object`
 
@@ -115,3 +115,8 @@ var recordTransitEmpty = transit.withRecords([], function (name, value) {
 
 var decodedResult = recordTransitEmpty.fromJSON(encodedJSON); // returns new BarRecord({c: 3, d: 4})
 ```
+
+## XSS Warning
+When embedding JSON in an html page or related context (e.g. css, element attributes, etc), _**care must be taken to sanitize the output**_. By design, niether transit-js nor transit-immutable-js provide output sanitization.
+
+There are a number of libraries that can help. Including: [xss-filters](https://www.npmjs.com/package/xss-filters), [secure-filters](https://www.npmjs.com/package/secure-filters), and [many more](https://www.npmjs.com/browse/keyword/xss)
