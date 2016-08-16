@@ -10,7 +10,7 @@ var samples = Immutable.Map({
 
   "Immutable": Immutable.Map({
 
-    "Maps": Immutable.Map({"abc": "def"}),
+    "Maps": Immutable.Map({"abc": "def\nghi"}),
 
     "Maps with numeric keys": Immutable.Map().set(1, 2),
 
