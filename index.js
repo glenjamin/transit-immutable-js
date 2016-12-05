@@ -6,7 +6,7 @@ function recordName(record) {
   return record._name || record.constructor.name || 'Record';
 }
 
-function createReader(recordMap, missingRecordHandler) {
+function createReader(handlers) {
   return transit.reader('json', {
     mapBuilder: {
       init: function() {
@@ -20,44 +20,53 @@ function createReader(recordMap, missingRecordHandler) {
         return m;
       }
     },
-    handlers: {
-      iM: function(v) {
-        var m = Immutable.Map().asMutable();
-        for (var i = 0; i < v.length; i += 2) {
-          m = m.set(v[i], v[i + 1]);
-        }
-        return m.asImmutable();
-      },
-      iOM: function(v) {
-        var m = Immutable.OrderedMap().asMutable();
-        for (var i = 0; i < v.length; i += 2) {
-          m = m.set(v[i], v[i + 1]);
-        }
-        return m.asImmutable();
-      },
-      iL: function(v) {
-        return Immutable.List(v);
-      },
-      iS: function(v) {
-        return Immutable.Set(v);
-      },
-      iOS: function(v) {
-        return Immutable.OrderedSet(v);
-      },
-      iR: function(v) {
-        var RecordType = recordMap[v.n];
-        if (!RecordType) {
-          return missingRecordHandler(v.n, v.v);
-        }
-
-        return new RecordType(v.v);
-      }
-    }
+    handlers: handlers
   });
-
 }
 
-function createWriter(recordMap, predicate) {
+function createReaderHandlers(recordMap, missingRecordHandler) {
+  return {
+    iM: function(v) {
+      var m = Immutable.Map().asMutable();
+      for (var i = 0; i < v.length; i += 2) {
+        m = m.set(v[i], v[i + 1]);
+      }
+      return m.asImmutable();
+    },
+    iOM: function(v) {
+      var m = Immutable.OrderedMap().asMutable();
+      for (var i = 0; i < v.length; i += 2) {
+        m = m.set(v[i], v[i + 1]);
+      }
+      return m.asImmutable();
+    },
+    iL: function(v) {
+      return Immutable.List(v);
+    },
+    iS: function(v) {
+      return Immutable.Set(v);
+    },
+    iOS: function(v) {
+      return Immutable.OrderedSet(v);
+    },
+    iR: function(v) {
+      var RecordType = recordMap[v.n];
+      if (!RecordType) {
+        return missingRecordHandler(v.n, v.v);
+      }
+
+      return new RecordType(v.v);
+    }
+  };
+}
+
+function createWriter(handlers) {
+  return transit.writer('json', {
+    handlers: handlers
+  });
+}
+
+function createWriterHandlers(recordMap, predicate) {
   function mapSerializer(m) {
     var i = 0;
     if (predicate) {
@@ -143,9 +152,7 @@ function createWriter(recordMap, predicate) {
     handlers.set(recordMap[name], makeRecordHandler(name, predicate));
   });
 
-  return transit.writer('json', {
-    handlers: handlers
-  });
+  return handlers;
 }
 
 function makeRecordHandler(name) {
@@ -189,14 +196,9 @@ function defaultMissingRecordHandler(recName) {
   throw new Error(msg);
 }
 
-function createInstance(options) {
-  var records = options.records || {};
-  var filter = options.filter || false;
-  var missingRecordFn = options.missingRecordHandler
-                          || defaultMissingRecordHandler;
-
-  var reader = createReader(records, missingRecordFn);
-  var writer = createWriter(records, filter);
+function createInstanceFromHandlers(handlers) {
+  var reader = createReader(handlers.read);
+  var writer = createWriter(handlers.write);
 
   return {
     toJSON: function toJSON(data) {
@@ -206,15 +208,35 @@ function createInstance(options) {
       return reader.read(json);
     },
     withFilter: function(predicate) {
-      return createInstance({
+      return createInstanceFromHandlers(handlers.withFilter(predicate));
+    },
+    withRecords: function(recordClasses, missingRecordHandler) {
+      return createInstanceFromHandlers(
+        handlers.withRecords(recordClasses, missingRecordHandler)
+      );
+    }
+  };
+}
+
+function createHandlers(options) {
+  var records = options.records || {};
+  var filter = options.filter || false;
+  var missingRecordFn = options.missingRecordHandler
+                          || defaultMissingRecordHandler;
+
+  return {
+    read: createReaderHandlers(records, missingRecordFn),
+    write: createWriterHandlers(records, filter),
+    withFilter: function(newFilter) {
+      return createHandlers({
         records: records,
-        filter: predicate,
+        filter: newFilter,
         missingRecordHandler: missingRecordFn
       });
     },
     withRecords: function(recordClasses, missingRecordHandler) {
       var recordMap = buildRecordMap(recordClasses);
-      return createInstance({
+      return createHandlers({
         records: recordMap,
         filter: filter,
         missingRecordHandler: missingRecordHandler
@@ -223,4 +245,5 @@ function createInstance(options) {
   };
 }
 
-module.exports = createInstance({});
+module.exports = createInstanceFromHandlers(createHandlers({}));
+module.exports.handlers = createHandlers({});
