@@ -1,11 +1,6 @@
 var transit = require('transit-js');
 var Immutable = require('immutable');
 
-function recordName(record) {
-  /* eslint no-underscore-dangle: 0 */
-  return record._name || record.constructor.name || 'Record';
-}
-
 function createReader(handlers) {
   return transit.reader('json', {
     mapBuilder: {
@@ -24,8 +19,8 @@ function createReader(handlers) {
   });
 }
 
-function createReaderHandlers(recordMap, missingRecordHandler) {
-  return {
+function createReaderHandlers(extras, recordMap, missingRecordHandler) {
+  var handlers = {
     iM: function(v) {
       var m = Immutable.Map().asMutable();
       for (var i = 0; i < v.length; i += 2) {
@@ -58,6 +53,10 @@ function createReaderHandlers(recordMap, missingRecordHandler) {
       return new RecordType(v.v);
     }
   };
+  extras.forEach(function(extra) {
+    handlers[extra.tag] = extra.read;
+  });
+  return handlers;
 }
 
 function createWriter(handlers) {
@@ -66,7 +65,7 @@ function createWriter(handlers) {
   });
 }
 
-function createWriterHandlers(recordMap, predicate) {
+function createWriterHandlers(extras, recordMap, predicate) {
   function mapSerializer(m) {
     var i = 0;
     if (predicate) {
@@ -152,7 +151,47 @@ function createWriterHandlers(recordMap, predicate) {
     handlers.set(recordMap[name], makeRecordHandler(name, predicate));
   });
 
+  extras.forEach(function(extra) {
+    handlers.set(extra.class, transit.makeWriteHandler({
+      tag: function() { return extra.tag; },
+      rep: extra.write
+    }));
+  });
+
   return handlers;
+}
+
+function validateExtras(extras) {
+  if (!Array.isArray(extras)) {
+    invalidExtras(extras, "Expected array of handlers, got %j");
+  }
+  extras.forEach(function(extra) {
+    if (typeof extra.tag !== "string") {
+      invalidExtras(extra,
+        "Expected %j to have property 'tag' which is a string");
+    }
+    if (typeof extra.class !== "function") {
+      invalidExtras(extra,
+        "Expected %j to have property 'class' which is a constructor function");
+    }
+    if (typeof extra.write !== "function") {
+      invalidExtras(extra,
+        "Expected %j to have property 'write' which is a function");
+    }
+    if (typeof extra.read !== "function") {
+      invalidExtras(extra,
+        "Expected %j to have property 'write' which is a function");
+    }
+  });
+}
+function invalidExtras(data, msg) {
+  var json = JSON.stringify(data);
+  throw new Error(msg.replace("%j", json));
+}
+
+function recordName(record) {
+  /* eslint no-underscore-dangle: 0 */
+  return record._name || record.constructor.name || 'Record';
 }
 
 function makeRecordHandler(name) {
@@ -207,6 +246,9 @@ function createInstanceFromHandlers(handlers) {
     fromJSON: function fromJSON(json) {
       return reader.read(json);
     },
+    withExtraHandlers: function(extra) {
+      return createInstanceFromHandlers(handlers.withExtraHandlers(extra));
+    },
     withFilter: function(predicate) {
       return createInstanceFromHandlers(handlers.withFilter(predicate));
     },
@@ -223,12 +265,24 @@ function createHandlers(options) {
   var filter = options.filter || false;
   var missingRecordFn = options.missingRecordHandler
                           || defaultMissingRecordHandler;
+  var extras = options.extras || [];
 
   return {
-    read: createReaderHandlers(records, missingRecordFn),
-    write: createWriterHandlers(records, filter),
+    read: createReaderHandlers(extras, records, missingRecordFn),
+    write: createWriterHandlers(extras, records, filter),
+    withExtraHandlers: function(moreExtras) {
+      validateExtras(moreExtras);
+
+      return createHandlers({
+        extras: extras.concat(moreExtras),
+        records: records,
+        filter: filter,
+        missingRecordHandler: missingRecordFn
+      });
+    },
     withFilter: function(newFilter) {
       return createHandlers({
+        extras: extras,
         records: records,
         filter: newFilter,
         missingRecordHandler: missingRecordFn
@@ -237,6 +291,7 @@ function createHandlers(options) {
     withRecords: function(recordClasses, missingRecordHandler) {
       var recordMap = buildRecordMap(recordClasses);
       return createHandlers({
+        extras: extras,
         records: recordMap,
         filter: filter,
         missingRecordHandler: missingRecordHandler

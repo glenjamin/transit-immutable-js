@@ -83,6 +83,18 @@ A mapping of type constructors to encoding functions which can be used to create
 
 **The various `withXXX` methods can be combined as desired by chaining them together.**
 
+### `transit.withExtraHandlers(Array handlers) => transit`
+> Also `transit.handlers.withExtraHandlers(Array handlers) => handlers`
+
+Create a modified version of the transit API that knows about more types than it did before. This is primarily useful if you have additional custom datatypes that you want to be able serialise and deserialise. Each entry in this array must be an object with the following properties:
+
+ * `tag` *string* - a unique identifier for this type that will be used in the serialised output
+ * `class` *function* - a constructor function that can be used to identify the type via an `instanceof` check
+ * `write` *function(value)* - a function which will receive an instance of your type, and is expected to create some serialisable representation of it
+ * `read` *function(rep)* - a function which will receive the serialisable representation, and is expected to create a new instance from it
+
+The `read` and `write` functions should form a matched pair of functions - calling read on the result of write should produce the same value and vice versa. Transit applies encoding and decoding recursively, so you can return any type transit understands from `write`, and expect to receive it back in `read` later.
+
 ### `transit.withFilter(function) => transit`
 > Also `transit.handlers.withFilter(function) => handlers`
 
