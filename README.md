@@ -50,6 +50,19 @@ console.log(transit.fromJSON(transit.toJSON(obj)));
 //  array: [ 'javascript', 4, 'lyfe' ] }
 ```
 
+### Usage with transit directly
+
+As well as the nice friendly wrapped API, the internal handlers are exposed in
+case you need to work directly with the `transit-js` API.
+
+```js
+var transitJS = require('transit-js');
+var handlers = require('transit-immutable-js').handlers;
+
+var reader = transitJS.reader('json', {handlers: handlers.read});
+var writer = transitJS.writer('json-verbose', {handlers: handlers.write});
+```
+
 ## API
 
 ### `transit.toJSON(object) => string`
@@ -60,17 +73,28 @@ Convert an immutable object into a JSON representation ([XSS Warning](#xss-warni
 
 Convert a JSON representation back into an immutable object
 
-> The `withXXX` methods can be combined as desired.
+### `transit.handlers.read` `object`
+
+A mapping of tags to decoding functions which can be used to create a transit reader directly.
+
+### `transit.handlers.write` `transit.map`
+
+A mapping of type constructors to encoding functions which can be used to create a transit writer directly.
+
+**The various `withXXX` methods can be combined as desired by chaining them together.**
 
 ### `transit.withFilter(function) => transit`
+> Also `transit.handlers.withFilter(function) => handlers`
 
 Create a modified version of the transit API that deeply applies the provided filter function to all immutable collections before serialising. Can be used to exclude entries.
 
 ### `transit.withRecords(Array recordClasses, missingRecordHandler = null) => transit`
+> Also `transit.handlers.withRecords(Array recordClasses, missingRecordHandler = null) => handlers`
 
 Creates a modified version of the transit API with support for serializing/deserializing [Record](https://facebook.github.io/immutable-js/docs/#/) objects. If a Record is included in an object to be serialized without the proper handler, on encoding it will be encoded as an `Immutable.Map`.
 
 `missingRecordHandler` is called when a record-name is not found and can be used to handle the missing record manually. If no handler is given, the deserialisation process will throw an error. It accepts 2 parameters: `name` and `value` and the return value will be used instead of the missing record.
+
 
 ## Example `Record` Usage:
 
@@ -117,6 +141,7 @@ var decodedResult = recordTransitEmpty.fromJSON(encodedJSON); // returns new Bar
 ```
 
 ## XSS Warning
+
 When embedding JSON in an html page or related context (e.g. css, element attributes, etc), _**care must be taken to sanitize the output**_. By design, niether transit-js nor transit-immutable-js provide output sanitization.
 
 There are a number of libraries that can help. Including: [xss-filters](https://www.npmjs.com/package/xss-filters), [secure-filters](https://www.npmjs.com/package/secure-filters), and [many more](https://www.npmjs.com/browse/keyword/xss)
