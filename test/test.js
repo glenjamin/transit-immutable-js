@@ -1,86 +1,14 @@
 /* eslint-env mocha */
-var chai = require('chai');
-chai.use(require('chai-immutable'));
-var expect = chai.expect;
+var shared = require("./shared");
+
+var expect = shared.expect;
+var samples = shared.samples;
+var expectImmutableEqual = shared.expectImmutableEqual;
+var expectNotImmutableEqual = shared.expectNotImmutableEqual;
+
 var Immutable = require('immutable');
 
 var transit = require('../');
-
-var samples = Immutable.Map({
-
-  "Immutable": Immutable.Map({
-
-    "Maps": Immutable.Map({"abc": "def\nghi"}),
-
-    "Maps with numeric keys": Immutable.Map().set(1, 2),
-
-    "Maps in Maps": Immutable.Map()
-      .set(1, Immutable.Map([['X', 'Y'], ['A', 'B']]))
-      .set(2, Immutable.Map({a: 1, b: 2, c: 3})),
-
-    "Lists": Immutable.List.of(1, 2, 3, 4, 5),
-
-    "Long Lists": Immutable.Range(0, 100).toList(),
-
-    "Lists in Maps": Immutable.Map().set(
-      Immutable.List.of(1, 2),
-      Immutable.List.of(1, 2, 3, 4, 5)
-    ),
-
-    "Sets": Immutable.Set.of(1, 2, 3, 3),
-
-    "OrderedSets": Immutable.OrderedSet.of(1, 4, 3, 3),
-
-    "Ordered Maps": Immutable.OrderedMap()
-      .set(2, 'a')
-      .set(3, 'b')
-      .set(1, 'c')
-  }),
-
-  JS: Immutable.Map({
-
-    "array": [1, 2, 3, 4, 5],
-
-    "array of arrays": [
-      [1, 2, 3],
-      [4, 5, 6],
-      [7, 8, 9, 10]
-    ],
-
-    "array of immutables": [
-      Immutable.Map({1: 2}),
-      Immutable.List.of(1, 2, 3)
-    ],
-
-    "object": {
-      a: 1,
-      b: 2
-    },
-
-    "object of immutables": {
-      a: Immutable.Map({1: 2}),
-      b: Immutable.Map({3: 4})
-    }
-
-  })
-
-});
-
-// This is a hack because records and maps are considered equivalent by
-// immutable.
-// https://github.com/astorije/chai-immutable/issues/37
-function expectImmutableEqual(r1, r2) {
-  expect(r1).to.eql(r2);
-  expect(r1.toString()).to.eql(r2.toString());
-}
-function expectNotImmutableEqual(r1, r2) {
-  try {
-    expectImmutableEqual(r1, r2);
-  } catch (ex) {
-    return true;
-  }
-  throw new chai.AssertionError('Expected ' + r1 + ' to differ from ' + r2);
-}
 
 describe('transit', function() {
   samples.get('Immutable').forEach(function(data, desc) {
@@ -386,6 +314,106 @@ describe('transit', function() {
       expect(result.get('_bar')).to.eql(undefined);
     });
 
+  });
+
+  describe("withExtraHandlers", function() {
+    function Point2d(x, y) { this.x = x; this.y = y; }
+    function Point3d(x, y, z) { this.x = x; this.y = y; this.z = z; }
+    var transitX;
+    before(function() {
+      transitX = transit.withExtraHandlers([
+        {
+          tag: "2d", class: Point2d,
+          write: function(val) { return [val.x, val.y]; },
+          read: function(rep) { return new Point2d(rep[0], rep[1]); }
+        },
+        {
+          tag: "3d", class: Point3d,
+          write: function(val) { return {x: val.x, y: val.y, z: val.z}; },
+          read: function(rep) { return new Point3d(rep.x, rep.y, rep.z); }
+        }
+      ]);
+    });
+    var value = Immutable.Map.of(
+      123, new Point2d(3, 5),
+      "co-ords", Immutable.List.of(new Point3d(1, 2, 3), new Point3d(4, 5, 6))
+    );
+
+    it('should encode into json', function() {
+      var json = transitX.toJSON(value);
+      expect(json).to.be.a('string');
+      expect(JSON.parse(json)).to.not.eql(null);
+    });
+    it('should round-trip', function() {
+      var roundTrip = transitX.fromJSON(transitX.toJSON(value));
+      expect(roundTrip).to.be.an.instanceof(Immutable.Map);
+
+      var point2 = roundTrip.get(123);
+      expect(point2).to.be.an.instanceof(Point2d);
+      expect(point2).to.have.property("x", 3);
+      expect(point2).to.have.property("y", 5);
+
+      var point3a = roundTrip.getIn(["co-ords", 0]);
+      expect(point3a).to.be.an.instanceof(Point3d);
+      expect(point3a).to.have.property("x", 1);
+      expect(point3a).to.have.property("y", 2);
+      expect(point3a).to.have.property("z", 3);
+
+      var point3b = roundTrip.getIn(["co-ords", 1]);
+      expect(point3b).to.be.an.instanceof(Point3d);
+      expect(point3b).to.have.property("x", 4);
+      expect(point3b).to.have.property("y", 5);
+      expect(point3b).to.have.property("z", 6);
+    });
+
+    describe("argument checking", function() {
+      function makeExtra(override) {
+        function ABC() {}
+        var extra = {
+          tag: "abc", class: ABC,
+          read: function(rep) { return ABC(rep); },
+          write: function(v) { return v * 0; }
+        };
+        Object.keys(override || {}).forEach(function(key) {
+          extra[key] = override[key];
+        });
+        return extra;
+      }
+      it("should check for non-array", function() {
+        expect(function() {
+          transit.withExtraHandlers({});
+        }).to.throw();
+      });
+      it("should check for string tag", function() {
+        expect(function() {
+          transit.withExtraHandlers([
+            makeExtra(),
+            makeExtra({tag: 123})
+          ]);
+        }).to.throw();
+      });
+      it("should check for class function", function() {
+        expect(function() {
+          transit.withExtraHandlers([
+            makeExtra({class: "blah"})
+          ]);
+        }).to.throw();
+      });
+      it("should check for write function", function() {
+        expect(function() {
+          transit.withExtraHandlers([
+            makeExtra({write: [1, 2, 3]})
+          ]);
+        }).to.throw();
+      });
+      it("should check for read function", function() {
+        expect(function() {
+          transit.withExtraHandlers([
+            makeExtra({read: {nope: "not this"}})
+          ]);
+        }).to.throw();
+      });
+    });
   });
 
   describe('Unknown Input', function() {

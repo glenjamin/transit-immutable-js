@@ -1,12 +1,7 @@
 var transit = require('transit-js');
 var Immutable = require('immutable');
 
-function recordName(record) {
-  /* eslint no-underscore-dangle: 0 */
-  return record._name || record.constructor.name || 'Record';
-}
-
-function createReader(recordMap, missingRecordHandler) {
+function createReader(handlers) {
   return transit.reader('json', {
     mapBuilder: {
       init: function() {
@@ -20,44 +15,57 @@ function createReader(recordMap, missingRecordHandler) {
         return m;
       }
     },
-    handlers: {
-      iM: function(v) {
-        var m = Immutable.Map().asMutable();
-        for (var i = 0; i < v.length; i += 2) {
-          m = m.set(v[i], v[i + 1]);
-        }
-        return m.asImmutable();
-      },
-      iOM: function(v) {
-        var m = Immutable.OrderedMap().asMutable();
-        for (var i = 0; i < v.length; i += 2) {
-          m = m.set(v[i], v[i + 1]);
-        }
-        return m.asImmutable();
-      },
-      iL: function(v) {
-        return Immutable.List(v);
-      },
-      iS: function(v) {
-        return Immutable.Set(v);
-      },
-      iOS: function(v) {
-        return Immutable.OrderedSet(v);
-      },
-      iR: function(v) {
-        var RecordType = recordMap[v.n];
-        if (!RecordType) {
-          return missingRecordHandler(v.n, v.v);
-        }
-
-        return new RecordType(v.v);
-      }
-    }
+    handlers: handlers
   });
-
 }
 
-function createWriter(recordMap, predicate) {
+function createReaderHandlers(extras, recordMap, missingRecordHandler) {
+  var handlers = {
+    iM: function(v) {
+      var m = Immutable.Map().asMutable();
+      for (var i = 0; i < v.length; i += 2) {
+        m = m.set(v[i], v[i + 1]);
+      }
+      return m.asImmutable();
+    },
+    iOM: function(v) {
+      var m = Immutable.OrderedMap().asMutable();
+      for (var i = 0; i < v.length; i += 2) {
+        m = m.set(v[i], v[i + 1]);
+      }
+      return m.asImmutable();
+    },
+    iL: function(v) {
+      return Immutable.List(v);
+    },
+    iS: function(v) {
+      return Immutable.Set(v);
+    },
+    iOS: function(v) {
+      return Immutable.OrderedSet(v);
+    },
+    iR: function(v) {
+      var RecordType = recordMap[v.n];
+      if (!RecordType) {
+        return missingRecordHandler(v.n, v.v);
+      }
+
+      return new RecordType(v.v);
+    }
+  };
+  extras.forEach(function(extra) {
+    handlers[extra.tag] = extra.read;
+  });
+  return handlers;
+}
+
+function createWriter(handlers) {
+  return transit.writer('json', {
+    handlers: handlers
+  });
+}
+
+function createWriterHandlers(extras, recordMap, predicate) {
   function mapSerializer(m) {
     var i = 0;
     if (predicate) {
@@ -143,9 +151,47 @@ function createWriter(recordMap, predicate) {
     handlers.set(recordMap[name], makeRecordHandler(name, predicate));
   });
 
-  return transit.writer('json', {
-    handlers: handlers
+  extras.forEach(function(extra) {
+    handlers.set(extra.class, transit.makeWriteHandler({
+      tag: function() { return extra.tag; },
+      rep: extra.write
+    }));
   });
+
+  return handlers;
+}
+
+function validateExtras(extras) {
+  if (!Array.isArray(extras)) {
+    invalidExtras(extras, "Expected array of handlers, got %j");
+  }
+  extras.forEach(function(extra) {
+    if (typeof extra.tag !== "string") {
+      invalidExtras(extra,
+        "Expected %j to have property 'tag' which is a string");
+    }
+    if (typeof extra.class !== "function") {
+      invalidExtras(extra,
+        "Expected %j to have property 'class' which is a constructor function");
+    }
+    if (typeof extra.write !== "function") {
+      invalidExtras(extra,
+        "Expected %j to have property 'write' which is a function");
+    }
+    if (typeof extra.read !== "function") {
+      invalidExtras(extra,
+        "Expected %j to have property 'write' which is a function");
+    }
+  });
+}
+function invalidExtras(data, msg) {
+  var json = JSON.stringify(data);
+  throw new Error(msg.replace("%j", json));
+}
+
+function recordName(record) {
+  /* eslint no-underscore-dangle: 0 */
+  return record._name || record.constructor.name || 'Record';
 }
 
 function makeRecordHandler(name) {
@@ -189,14 +235,9 @@ function defaultMissingRecordHandler(recName) {
   throw new Error(msg);
 }
 
-function createInstance(options) {
-  var records = options.records || {};
-  var filter = options.filter || false;
-  var missingRecordFn = options.missingRecordHandler
-                          || defaultMissingRecordHandler;
-
-  var reader = createReader(records, missingRecordFn);
-  var writer = createWriter(records, filter);
+function createInstanceFromHandlers(handlers) {
+  var reader = createReader(handlers.read);
+  var writer = createWriter(handlers.write);
 
   return {
     toJSON: function toJSON(data) {
@@ -205,16 +246,52 @@ function createInstance(options) {
     fromJSON: function fromJSON(json) {
       return reader.read(json);
     },
+    withExtraHandlers: function(extra) {
+      return createInstanceFromHandlers(handlers.withExtraHandlers(extra));
+    },
     withFilter: function(predicate) {
-      return createInstance({
+      return createInstanceFromHandlers(handlers.withFilter(predicate));
+    },
+    withRecords: function(recordClasses, missingRecordHandler) {
+      return createInstanceFromHandlers(
+        handlers.withRecords(recordClasses, missingRecordHandler)
+      );
+    }
+  };
+}
+
+function createHandlers(options) {
+  var records = options.records || {};
+  var filter = options.filter || false;
+  var missingRecordFn = options.missingRecordHandler
+                          || defaultMissingRecordHandler;
+  var extras = options.extras || [];
+
+  return {
+    read: createReaderHandlers(extras, records, missingRecordFn),
+    write: createWriterHandlers(extras, records, filter),
+    withExtraHandlers: function(moreExtras) {
+      validateExtras(moreExtras);
+
+      return createHandlers({
+        extras: extras.concat(moreExtras),
         records: records,
-        filter: predicate,
+        filter: filter,
+        missingRecordHandler: missingRecordFn
+      });
+    },
+    withFilter: function(newFilter) {
+      return createHandlers({
+        extras: extras,
+        records: records,
+        filter: newFilter,
         missingRecordHandler: missingRecordFn
       });
     },
     withRecords: function(recordClasses, missingRecordHandler) {
       var recordMap = buildRecordMap(recordClasses);
-      return createInstance({
+      return createHandlers({
+        extras: extras,
         records: recordMap,
         filter: filter,
         missingRecordHandler: missingRecordHandler
@@ -223,4 +300,5 @@ function createInstance(options) {
   };
 }
 
-module.exports = createInstance({});
+module.exports = createInstanceFromHandlers(createHandlers({}));
+module.exports.handlers = createHandlers({});
