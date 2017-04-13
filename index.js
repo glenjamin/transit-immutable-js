@@ -189,9 +189,12 @@ function invalidExtras(data, msg) {
   throw new Error(msg.replace("%j", json));
 }
 
-function recordName(record) {
+function recordName(RecordType) {
   /* eslint no-underscore-dangle: 0 */
-  return record._name || record.constructor.name || 'Record';
+  if (RecordType.name && RecordType.name !== 'Record') {
+    return RecordType.name;
+  }
+  return (new RecordType({}))._name || 'Record';
 }
 
 function makeRecordHandler(name) {
@@ -212,8 +215,7 @@ function buildRecordMap(recordClasses) {
   var recordMap = {};
 
   recordClasses.forEach(function(RecordType) {
-    var rec = new RecordType({});
-    var recName = recordName(rec);
+    var recName = recordName(RecordType);
 
     if (!recName || recName === 'Record') {
       throw new Error('Cannot (de)serialize Record() without a name');
