@@ -58,10 +58,7 @@ describe('transit', function() {
       d: '2'
     }, 'bar');
 
-    class BazRecord extends Immutable.Record({
-      e: 'a',
-      f: 'b'
-    }) {};
+    var BazRecord = require('./BazRecord');
 
     var NamelessRecord = Immutable.Record({});
 
