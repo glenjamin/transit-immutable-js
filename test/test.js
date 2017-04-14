@@ -58,6 +58,8 @@ describe('transit', function() {
       d: '2'
     }, 'bar');
 
+    var BazRecord = require('./BazRecord');
+
     var NamelessRecord = Immutable.Record({});
 
     var ClassyBase = Immutable.Record({name: 'lindsey'}, 'ClassyRecord');
@@ -65,7 +67,7 @@ describe('transit', function() {
     ClassyRecord.prototype = Object.create(ClassyBase.prototype);
     ClassyRecord.prototype.constructor = ClassyRecord;
 
-    var recordTransit = transit.withRecords([FooRecord, BarRecord]);
+    var recordTransit = transit.withRecords([FooRecord, BarRecord, BazRecord]);
 
     it('should ensure maps and records compare differently', function() {
       expectNotImmutableEqual(new FooRecord(), Immutable.Map({a: 1, b: 2}));
@@ -74,7 +76,8 @@ describe('transit', function() {
     it('should round-trip simple records', function() {
       var data = Immutable.Map({
         myFoo: new FooRecord(),
-        myBar: new BarRecord()
+        myBar: new BarRecord(),
+        myBaz: new BazRecord()
       });
 
       var roundTrip = recordTransit.fromJSON(recordTransit.toJSON(data));
@@ -85,6 +88,9 @@ describe('transit', function() {
 
       expect(roundTrip.get('myBar').c).to.eql('1');
       expect(roundTrip.get('myBar').d).to.eql('2');
+
+      expect(roundTrip.get('myBaz').e).to.eql('a');
+      expect(roundTrip.get('myBaz').f).to.eql('b');
     });
 
     it('should round-trip complex nested records', function() {
