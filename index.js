@@ -212,7 +212,7 @@ function buildRecordMap(recordClasses) {
   var recordMap = {};
 
   recordClasses.forEach(function(RecordType) {
-    var rec = new RecordType({});
+    var rec = new RecordType();
     var recName = recordName(rec);
 
     if (!recName || recName === 'Record') {
