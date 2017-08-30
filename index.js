@@ -96,26 +96,26 @@ function createWriterHandlers(extras, recordMap, predicate) {
       rep: mapSerializer
     }),
     Immutable.List, transit.makeWriteHandler({
-        tag: function() {
-            return "iL";
-        },
-        rep: function(v) {
-            if (predicate) {
-                v = v.filter(predicate);
-            }
-            return v.toArray();
-        }
+      tag: function() {
+          return "iL";
+      },
+      rep: function(v) {
+          if (predicate) {
+              v = v.filter(predicate);
+          }
+          return v.toArray();
+      }
     }),
     Immutable.Stack, transit.makeWriteHandler({
-        tag: function() {
-            return "iStk";
-        },
-        rep: function(v) {
-            if (predicate) {
-                v = v.filter(predicate);
-            }
-            return v.toArray();
-        }
+      tag: function() {
+          return "iStk";
+      },
+      rep: function(v) {
+          if (predicate) {
+              v = v.filter(predicate);
+          }
+          return v.toArray();
+      }
     }),
     Immutable.Set, transit.makeWriteHandler({
       tag: function() {
