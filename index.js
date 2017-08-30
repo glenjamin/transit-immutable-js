@@ -39,7 +39,10 @@ function createReaderHandlers(extras, recordMap, missingRecordHandler) {
       return Immutable.List(v);
     },
     iS: function(v) {
-      return Immutable.Set(v);
+        return Immutable.Set(v);
+    },
+    iStk: function(v) {
+        return Immutable.Stack(v);
     },
     iOS: function(v) {
       return Immutable.OrderedSet(v);
@@ -93,15 +96,26 @@ function createWriterHandlers(extras, recordMap, predicate) {
       rep: mapSerializer
     }),
     Immutable.List, transit.makeWriteHandler({
-      tag: function() {
-        return "iL";
-      },
-      rep: function(v) {
-        if (predicate) {
-          v = v.filter(predicate);
+        tag: function() {
+            return "iL";
+        },
+        rep: function(v) {
+            if (predicate) {
+                v = v.filter(predicate);
+            }
+            return v.toArray();
         }
-        return v.toArray();
-      }
+    }),
+    Immutable.Stack, transit.makeWriteHandler({
+        tag: function() {
+            return "iStk";
+        },
+        rep: function(v) {
+            if (predicate) {
+                v = v.filter(predicate);
+            }
+            return v.toArray();
+        }
     }),
     Immutable.Set, transit.makeWriteHandler({
       tag: function() {
