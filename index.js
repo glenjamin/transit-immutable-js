@@ -112,7 +112,7 @@ function createWriterHandlers(extras, recordMap, predicate) {
       },
       rep: function(v) {
         if (predicate) {
-            v = v.filter(predicate);
+          v = v.filter(predicate);
         }
         return v.toArray();
       }
