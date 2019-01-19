@@ -99,27 +99,23 @@ describe('transit', function() {
       expectImmutableEqual(data, roundTrip);
     });
 
-    it('should serialize unspecified Record as a Map', function() {
+    it('unspecified Records should throw', function() {
       var data = Immutable.Map({
         myFoo: new FooRecord(),
         myBar: new BarRecord()
       });
 
       var oneRecordTransit = transit.withRecords([FooRecord]);
-      var roundTripOneRecord = oneRecordTransit.fromJSON(
-                                oneRecordTransit.toJSON(data));
+      
+      expect(function() {
+        oneRecordTransit.fromJSON(
+          oneRecordTransit.toJSON(data))
+      }).to.throw();
 
-      expectImmutableEqual(roundTripOneRecord, Immutable.fromJS({
-        myFoo: new FooRecord(),
-        myBar: {c: '1', d: '2'}
-      }));
+      expect(function() {
+        transit.fromJSON(transit.toJSON(data));
+      }).to.throw();
 
-      var roundTripWithoutRecords = transit.fromJSON(transit.toJSON(data));
-
-      expectImmutableEqual(roundTripWithoutRecords, Immutable.fromJS({
-        myFoo: {a: 1, b: 2},
-        myBar: {c: '1', d: '2'}
-      }));
     });
 
     it('should roundtrip ES6-class-style records', function() {
@@ -270,8 +266,8 @@ describe('transit', function() {
 
       var input = new MyRecord({a: Immutable.Map({_c: 1, d: 2}), _b: 'baz' });
       var recordFilter = transit
-                          .withRecords([MyRecord])
-                          .withFilter(filterFunction);
+        .withRecords([MyRecord])
+        .withFilter(filterFunction);
 
       var result = recordFilter.fromJSON(recordFilter.toJSON(input));
 
@@ -310,12 +306,13 @@ describe('transit', function() {
       };
 
       var recordFilter = transit
-                          .withRecords([FooRecord, BarRecord])
-                          .withFilter(filterFunction);
+        .withRecords([FooRecord, BarRecord])
+        .withFilter(filterFunction);
       var json = recordFilter.toJSON(input);
+      
       recordFilter = transit
-                      .withRecords([BarRecord], missingRecordHandler)
-                      .withFilter(filterFunction);
+        .withRecords([BarRecord], missingRecordHandler)
+        .withFilter(filterFunction);
 
       var result = recordFilter.fromJSON(json);
 

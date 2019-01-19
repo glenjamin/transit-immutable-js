@@ -19,17 +19,17 @@
   },
   "homepage": "https://github.com/glenjamin/transit-immutable-js",
   "peerDependencies": {
-    "immutable": ">= 3",
-    "transit-js": ">= 0.8"
+    "immutable": "^4.0.0-rc.12",
+    "transit-js": "^0.8.861"
   },
   "devDependencies": {
-    "chai": "^2.3.0",
-    "chai-immutable": "^1.2.0",
-    "coveralls": "^2.11.2",
-    "eslint": "^0.24.1",
-    "immutable": "^3.7.4",
-    "istanbul": "^0.3.14",
-    "mocha": "^2.2.5",
+    "chai": "^4.2.0",
+    "chai-immutable": "^2.0.0-rc.3",
+    "coveralls": "^3.0.2",
+    "eslint": "^5.12.1",
+    "immutable": "^4.0.0-rc.12",
+    "istanbul": "^0.4.5",
+    "mocha": "^5.2.0",
     "transit-js": "^0.8.807"
   }
 }
