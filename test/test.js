@@ -235,6 +235,16 @@ describe('transit', function() {
       expect(result.size).to.eql(3);
     });
 
+    it('can ignore Stack entries', function() {
+      var input = Immutable.Stack.of(1, 2, 3, 'a');
+      filter = transit.withFilter(function(val) {
+        return typeof val === 'number';
+      });
+      var result = filter.fromJSON(filter.toJSON(input));
+      expect(result.includes('a')).to.eql(false);
+      expect(result.size).to.eql(3);
+    });
+
     it('can ignore OrderedSet entries', function() {
       var input = Immutable.Set.of(1, 2, 3, 3, 'a');
       filter = transit.withFilter(function(val) {

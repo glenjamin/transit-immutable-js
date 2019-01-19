@@ -9,6 +9,8 @@ exports.samples = Immutable.Map({
 
   "Immutable": Immutable.Map({
 
+    "Stack": new Immutable.Stack([1, 2, 3]),
+
     "Maps": Immutable.Map({"abc": "def\nghi"}),
 
     "Maps with numeric keys": Immutable.Map().set(1, 2),
@@ -60,9 +62,7 @@ exports.samples = Immutable.Map({
       a: Immutable.Map({1: 2}),
       b: Immutable.Map({3: 4})
     }
-
   })
-
 });
 
 // This is a hack because records and maps are considered equivalent by
