@@ -113,7 +113,7 @@ describe('transit', function() {
       }).to.throw();
 
       expect(function() {
-          transit.fromJSON(transit.toJSON(data));
+        transit.fromJSON(transit.toJSON(data));
       }).to.throw();
 
     });
@@ -266,8 +266,8 @@ describe('transit', function() {
 
       var input = new MyRecord({a: Immutable.Map({_c: 1, d: 2}), _b: 'baz' });
       var recordFilter = transit
-                          .withRecords([MyRecord])
-                          .withFilter(filterFunction);
+        .withRecords([MyRecord])
+        .withFilter(filterFunction);
 
       var result = recordFilter.fromJSON(recordFilter.toJSON(input));
 
@@ -306,12 +306,13 @@ describe('transit', function() {
       };
 
       var recordFilter = transit
-                          .withRecords([FooRecord, BarRecord])
-                          .withFilter(filterFunction);
+        .withRecords([FooRecord, BarRecord])
+        .withFilter(filterFunction);
       var json = recordFilter.toJSON(input);
+      
       recordFilter = transit
-                      .withRecords([BarRecord], missingRecordHandler)
-                      .withFilter(filterFunction);
+        .withRecords([BarRecord], missingRecordHandler)
+        .withFilter(filterFunction);
 
       var result = recordFilter.fromJSON(json);
 

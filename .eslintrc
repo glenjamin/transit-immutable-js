@@ -28,8 +28,8 @@
         "consistent-this": [1, "nope-dont-capture-this"],
         "max-nested-callbacks": [2, 3],
         "no-nested-ternary": 1,
-        "space-after-keywords": [1, "always"],
+        "keyword-spacing": [1, { "before": true, "after": true}],
         "space-before-function-paren": [1, "never"],
-        "spaced-line-comment": [1, "always"]
+        "spaced-comment": [1, "always"]
     }
 }
