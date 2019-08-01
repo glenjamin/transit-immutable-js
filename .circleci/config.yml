@@ -1,0 +1,12 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@dev:32caa22
+
+workflows:
+  quickstart:
+    jobs:
+      - node/test:
+          tag: lts
+          before-tests:
+            - run: npm run lint
