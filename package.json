@@ -4,7 +4,7 @@
   "description": "Transit serialisation for Immutable.js",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "npm install --no-save immutable@3 && mocha && npm install --no-save immutable@^4.0.0-rc.12 && mocha",
     "lint": "eslint .",
     "coverage": "istanbul cover _mocha --"
   },
@@ -27,7 +27,7 @@
     "chai-immutable": "^1.2.0",
     "coveralls": "^2.11.2",
     "eslint": "^0.24.1",
-    "immutable": "^3.7.4",
+    "immutable": ">=3.7.4",
     "istanbul": "^0.3.14",
     "mocha": "^2.2.5",
     "transit-js": "^0.8.807"

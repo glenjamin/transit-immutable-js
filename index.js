@@ -83,15 +83,15 @@ function createWriterHandlers(extras, recordMap, predicate) {
   }
 
   var handlers = transit.map([
-    Immutable.Map, transit.makeWriteHandler({
-      tag: function() {
-        return 'iM';
-      },
-      rep: mapSerializer
-    }),
     Immutable.OrderedMap, transit.makeWriteHandler({
       tag: function() {
         return 'iOM';
+      },
+      rep: mapSerializer
+    }),
+    Immutable.Map, transit.makeWriteHandler({
+      tag: function() {
+        return 'iM';
       },
       rep: mapSerializer
     }),
@@ -117,9 +117,9 @@ function createWriterHandlers(extras, recordMap, predicate) {
         return v.toArray();
       }
     }),
-    Immutable.Set, transit.makeWriteHandler({
+    Immutable.OrderedSet, transit.makeWriteHandler({
       tag: function() {
-        return "iS";
+        return "iOS";
       },
       rep: function(v) {
         if (predicate) {
@@ -128,9 +128,9 @@ function createWriterHandlers(extras, recordMap, predicate) {
         return v.toArray();
       }
     }),
-    Immutable.OrderedSet, transit.makeWriteHandler({
+    Immutable.Set, transit.makeWriteHandler({
       tag: function() {
-        return "iOS";
+        return "iS";
       },
       rep: function(v) {
         if (predicate) {
@@ -152,11 +152,11 @@ function createWriterHandlers(extras, recordMap, predicate) {
         return 'iM';
       },
       rep: function(m) {
-        if (!('toMap' in m)) {
-          var e = "Error serializing unrecognized object " + m.toString();
-          throw new Error(e);
+        if ((Immutable.isImmutable && Immutable.isImmutable(m)) || ('toMap' in m)) {
+          return mapSerializer(Immutable.Map(m));
         }
-        return mapSerializer(m.toMap());
+        var e = "Error serializing unrecognized object " + m.toString();
+        throw new Error(e);
       }
     })
   ]);
