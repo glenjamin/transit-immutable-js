@@ -205,6 +205,7 @@ function invalidExtras(data, msg) {
 
 function recordName(record) {
   /* eslint no-underscore-dangle: 0 */
+  /* istanbul ignore next */
   return record._name || record.constructor.name || 'Record';
 }
 
