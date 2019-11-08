@@ -4,9 +4,11 @@
   "description": "Transit serialisation for Immutable.js",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
+    "test:3": "npm install --no-save immutable@^3.7.4 && mocha",
+    "test:4": "npm install --no-save immutable@^4.0.0-rc.12 && mocha",
+    "test": "npm run test:3 && npm run test:4",
     "lint": "eslint .",
-    "coverage": "istanbul cover _mocha --"
+    "coverage": "nyc npm test && nyc report --reporter=lcov --reporter=json"
   },
   "repository": {
     "type": "git",
@@ -27,9 +29,9 @@
     "chai-immutable": "^1.2.0",
     "coveralls": "^2.11.2",
     "eslint": "^0.24.1",
-    "immutable": "^3.7.4",
-    "istanbul": "^0.3.14",
+    "immutable": ">=3.7.4",
     "mocha": "^2.2.5",
+    "nyc": "^14.1.1",
     "transit-js": "^0.8.807"
   }
 }
